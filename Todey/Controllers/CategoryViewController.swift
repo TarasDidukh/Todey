@@ -8,8 +8,9 @@
 
 import UIKit
 import RealmSwift
+import ChameleonFramework
 
-class CategoryViewController: UITableViewController {
+class CategoryViewController: SwipeViewController {
 
     let realm = try! Realm()
     
@@ -19,6 +20,8 @@ class CategoryViewController: UITableViewController {
         super.viewDidLoad()
 
         loadCategories();
+        
+        tableView.separatorStyle = .none
     }
 
     @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
@@ -29,6 +32,7 @@ class CategoryViewController: UITableViewController {
             
             let newCategory = Category()
             newCategory.name = textField.text!
+            newCategory.bgColor = UIColor.randomFlat.hexValue()
             
             self.saveCategories(category: newCategory)
         }
@@ -53,6 +57,7 @@ class CategoryViewController: UITableViewController {
         let destinationVC = segue.destination as! TodoListViewController
         
         if let indexPath = tableView.indexPathForSelectedRow {
+            print(categoryArray?[indexPath.row].name)
             destinationVC.selectedCategory = categoryArray?[indexPath.row]
         }
     }
@@ -63,9 +68,19 @@ class CategoryViewController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
+        
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
         
         cell.textLabel?.text = categoryArray?[indexPath.row].name ?? "No Categories Added yet"
+        
+        if let bgColor = categoryArray?[indexPath.row].bgColor {
+            cell.backgroundColor = UIColor(hexString: bgColor)
+        } else {
+            cell.backgroundColor = UIColor.randomFlat
+        }
+        
+        cell.textLabel?.textColor = ContrastColorOf(cell.backgroundColor!, returnFlat: true)
+        
         
         return cell
     }
@@ -90,4 +105,19 @@ class CategoryViewController: UITableViewController {
 
         tableView.reloadData()
     }
+    
+    //MARK: - Delete Data From Swipe
+    
+    override func updateModel(at indexPath: IndexPath) {
+        if let categoryForDeleting = self.categoryArray?[indexPath.row] {
+            do {
+                try self.realm.write {
+                    self.realm.delete(categoryForDeleting)
+                }
+            } catch {
+                print("Error deleting category, \(error)")
+            }
+        }
+    }
 }
+
